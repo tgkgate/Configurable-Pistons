@@ -1,301 +1,318 @@
 ﻿using Sandbox.ModAPI.Ingame;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
 using VRage.Game.ModAPI.Ingame.Utilities;
+using JetBrains.Annotations;
 
 namespace IngameScript
 {
-    partial class Program : MyGridProgram
-    {
-        #region mdk preserve
+	// ReSharper disable once ClassNeverInstantiated.Global
+	public partial class Program : MyGridProgram
+	{
+		#region mdk preserve
 
-        #region mdk macros
-        // Last Build: $MDK_DATETIME$
-        #endregion
+		#region mdk macros
+		// Last Build: $MDK_DATETIME$
+		#endregion
 
-        #endregion
+		#endregion
 
-        /* -----------------------------------------------------------
-         * -- User Editable Variables --
-         * ----------------------------------------------------------- */
+		/* -----------------------------------------------------------
+		 * -- User Editable Variables --
+		 * ----------------------------------------------------------- */
 
-        /// <summary>
-        /// Default Retraction Speed
-        /// Speed (in m/s) when not otherwise defined
-        /// </summary>
-        public const float defaultRetractSpeed = 0.5f;
+		/// <summary>
+		/// Default Retraction Speed
+		/// Speed (in m/s) when not otherwise defined
+		/// </summary>
+		private readonly float defaultRetractSpeed = 0.5f;
 
-        /// <summary>
-        /// Default Extention Speed
-        /// Speed (in m/s) when not otherwise defined
-        /// </summary>
-        public const float defaultExtendSpeed = 0.5f;
+		/// <summary>
+		/// Default Extension Speed
+		/// Speed (in m/s) when not otherwise defined
+		/// </summary>
+		private readonly float defaultExtendSpeed = 0.5f;
 
-        /// <summary>
-        /// Default - Auto Retract
-        /// Set if not otherwise defined
-        /// </summary>
-        public const bool defaultAutoRetract = false;
+		/// <summary>
+		/// Default - Auto Retract
+		/// Set if not otherwise defined
+		/// </summary>
+		private readonly bool defaultAutoRetract = false;
 
-        /// <summary>
-        /// Default - Auto Extend
-        /// Set if not otherwise defined
-        /// </summary>
-        public const bool defaultAutoExtend = false;
+		/// <summary>
+		/// Default - Auto Extend
+		/// Set if not otherwise defined
+		/// </summary>
+		private readonly bool defaultAutoExtend = false;
 
-        /* -----------------------------------------------------------
-         * -- Do Not Edit Below This Line! --
-         * ----------------------------------------------------------- */
+		/* -----------------------------------------------------------
+		 * -- Do Not Edit Below This Line! --
+		 * ----------------------------------------------------------- */
 
-        private static readonly MyIni _iniSystem = new MyIni();
-        private static readonly string _sectionKey = "Piston Settings";
+		/// <summary>
+		/// Instance to the INI system
+		/// </summary>
+		// ReSharper disable once InconsistentNaming
+		private static readonly MyIni ini = new MyIni();
 
-        /// <summary>
-        /// List of commmands our program will respond too via the arguments box
-        /// </summary>
-        private Dictionary<string, Action> _commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
+		/// <summary>
+		/// The [section] to be read from in Custom Data
+		/// </summary>
+		private static readonly string SectionKey = "Piston Settings";
 
-        /// <summary>
-        /// This is the programs output to be printed on the programmable block pane
-        /// </summary>
-        private StringBuilder _outputText;
+		/// <summary>
+		/// List of commands our program will respond too via the arguments box
+		/// </summary>
+		private readonly Dictionary<string, Action> commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// Container for storing various speeds in addition to the piston
-        /// </summary>
-        struct PistonData
-        {
-            public bool AutoRetract;
-            public bool AutoExtend;
-            public float RetractSpeed;
-            public float ExtendSpeed;
-            public IMyPistonBase Piston;
-        };
+		/// <summary>
+		/// This is the programs output to be printed on the programmable block pane
+		/// </summary>
+		private readonly StringBuilder outputText;
 
-        /// <summary>
-        /// Linked list storing our affected pistons, as well as the various speeds
-        /// </summary>
-        List<PistonData> _pistonDataList;
+		/// <summary>
+		/// Container for storing various speeds in addition to the piston
+		/// </summary>
+		private struct PistonData
+		{
+			public bool AutoRetract;
+			public bool AutoExtend;
+			public float RetractSpeed;
+			public float ExtendSpeed;
+			public IMyPistonBase Piston;
+		}
 
-        /// <summary>
-        /// Our program constructor
-        /// This is run on compilation (world load, script import, etc)
-        /// </summary>
-        public Program()
-        {
-            // Command list
-            _commands["reset"] = Init;
-            _commands["clear"] = ClearMessage;
+		/// <summary>
+		/// Linked list storing our affected pistons, as well as the various speeds
+		/// </summary>
+		private readonly List<PistonData> pistonDataList;
 
-            // property inializers
-            _pistonDataList = new List<PistonData>();
-            _outputText = new StringBuilder();
-            _lastMessageText = new StringBuilder();
-            _activityIndicator = 0;
+		/// <summary>
+		/// The last message to be displayed, this allows persistence along with an activity indicator
+		/// </summary>
+		private readonly StringBuilder lastMessageText;
 
-            // Run frequency
-            Runtime.UpdateFrequency = UpdateFrequency.Update10;
+		/// <summary>
+		/// Our program constructor
+		/// This is run on compilation (world load, script import, etc)
+		/// </summary>
+		public Program()
+		{
+			// Command list
+			commands["reset"] = Init;
 
-            // Initialization - Populate the Lists
-            Init();
-        }
+			// property initializers
+			pistonDataList = new List<PistonData>();
+			outputText = new StringBuilder();
+			lastMessageText = new StringBuilder();
+			__activityIndicator = 0;
 
-        /// <summary>
-        /// The program entrypoint.
-        /// </summary>
-        /// <param name="arguments">The string supplied by the user</param>
-        /// <param name="updateSource">The source of this update,  whether by the user, a timer, or continous running</param>
-        public void Main(string arguments, UpdateType updateSource)
-        {
-            _outputText.Clear();
-            _outputText.AppendLine("-- Configurable Pistons --");
-            _outputText.AppendLine();
-            _outputText.AppendFormat("  Pistons Monitored: {0:d}", _pistonDataList.Count());
-            _outputText.AppendLine();
-            _outputText.AppendLine();
-            _outputText.AppendLine("  - Stats -");
-            _outputText.AppendFormat("  Runtime {0:F3} ms every {1:F0} ms", Runtime.LastRunTimeMs, Runtime.TimeSinceLastRun.TotalMilliseconds);
-            _outputText.AppendLine();
+			// Run frequency
+			Runtime.UpdateFrequency = UpdateFrequency.Once;
+		}
 
-            MyCommandLine _commandLine = new MyCommandLine();
+		/// <summary>
+		/// The program entry-point.
+		/// </summary>
+		/// <param name="arguments">The string supplied by the user</param>
+		/// <param name="updateSource">The source of this update,  whether by the user, a timer, or continous running</param>
+		public void Main(string arguments, UpdateType updateSource)
+		{
+			outputText.Clear();
+			outputText.AppendFormat(
+				"-- Configurable Pistons --" +
+				"\n" +
+				"  Pistons Monitored: {0:d}" +
+				"\n" +
+				"\n" +
+				"  - Stats -\n" +
+				"  Runtime {0:F3} ms every {1:F0} ms\n" +
+				"\n",
+				pistonDataList.Count(),
+				Runtime.LastRunTimeMs,
+				Runtime.TimeSinceLastRun.TotalMilliseconds
+			);
 
-            // Handing user input
-            if (updateSource == UpdateType.Terminal) {
-                if (_commandLine.TryParse(arguments)) {
-                    Action commandAction;
-                    string command = _commandLine.Argument(0);
+			// Handing user input
+			if (updateSource == UpdateType.Terminal) {
+				MyCommandLine commandLine = new MyCommandLine();
 
-                    if (_commands.TryGetValue(command, out commandAction)) {
-                        SetMessage("Executing: {0:s}", command);
-                        commandAction();
-                    }
-                    else {
-                        StringBuilder msg = new StringBuilder();
+				if (commandLine.TryParse(arguments)) {
+					string command = commandLine.Argument(0);
+					Action commandAction;
 
-                        msg.AppendFormat("  Unknown Command: {0:s}\n", command);
-                        msg.AppendLine();
-                        msg.AppendLine("  Available Commands:");
-                        msg.AppendLine("    reset     Reload settings");
-                        msg.AppendLine("    clear     Clears the \"Last Message\"");
-                        SetMessage(msg.ToString());
+					if (commands.TryGetValue(command, out commandAction)) {
+						SetMessage("Executing: {0:s}", command);
+						commandAction();
+					}
+					else {
+						StringBuilder msg = new StringBuilder();
 
-                        msg.Clear();
-                    }
-                }
-            }
-            // Handle self-updates (Once, Update1, 10, 100, etc)
-            else if ((updateSource & (UpdateType.Once | UpdateType.Update1 | UpdateType.Update10 | UpdateType.Update100)) != 0) {
-                foreach (PistonData data in _pistonDataList) {
+						msg.AppendFormat(
+							"  Unknown Command: {0:s}\n" +
+							"\n" +
+							"  Available Commands:\n" +
+							"    reset     Reload settings\n",
+							command
+						);
 
-                    // skip if the block no longer exists in the world
-                    // TODO: remove the piston from the list
-                    if (data.Piston.Closed) {
-                        if (_pistonDataList.Remove(data)) {
-                            SetMessage("A Piston was removed from grid\nDeleted Reference.");
-                        }
+						SetMessage(msg.ToString());
 
-                        break;
-                    }
+						msg.Clear();
+					}
+				}
+			}
+			else if ((updateSource & UpdateType.Update10) != 0) {
+				foreach (PistonData data in pistonDataList) {
+					// skip if the block no longer exists in the world
+					if (data.Piston.Closed) {
+						if (pistonDataList.Remove(data)) {
+							SetMessage("A Piston was removed from grid\nDeleted Reference.");
+						}
 
-                    // Skip if powered off or in a non-functional state
-                    if (!data.Piston.IsWorking) {
-                        continue;
-                    }
+						break;
+					}
 
-                    switch (data.Piston.Status) {
-                        case PistonStatus.Extended:
-                            data.Piston.Velocity = ((data.AutoRetract) ? -data.RetractSpeed : -data.RetractSpeed);
-                            break;
+					// Skip if powered off or in a non-functional state
+					if (!data.Piston.IsWorking) {
+						continue;
+					}
 
-                        case PistonStatus.Extending:
-                            data.Piston.Velocity = data.ExtendSpeed;
-                            break;
+					switch (data.Piston.Status) {
+						case PistonStatus.Extended:
+							data.Piston.Velocity = data.AutoRetract ? -data.RetractSpeed : -data.RetractSpeed;
+							break;
 
-                        case PistonStatus.Retracted:
-                            data.Piston.Velocity = ((data.AutoExtend) ? data.ExtendSpeed : -data.ExtendSpeed);
-                            break;
+						case PistonStatus.Extending:
+							data.Piston.Velocity = data.ExtendSpeed;
+							break;
 
-                        case PistonStatus.Retracting:
-                            data.Piston.Velocity = -data.RetractSpeed;
-                            break;
-                    }
-                }
-            }
+						case PistonStatus.Retracted:
+							data.Piston.Velocity = data.AutoExtend ? data.ExtendSpeed : -data.ExtendSpeed;
+							break;
 
-            _outputText.AppendStringBuilder(_lastMessageText);
-            _outputText.AppendLine();
-            _outputText.Append(GetActivityIndicator());
+						case PistonStatus.Retracting:
+							data.Piston.Velocity = -data.RetractSpeed;
+							break;
+					}
+				}
 
-            Print(_outputText.ToString());
-        }
+				// no pistons controlled,  stop continuously running
+				if (pistonDataList.Count == 0) {
+					Runtime.UpdateFrequency = UpdateFrequency.None;
+				}
+			}
+			else if ((updateSource & UpdateType.Once) != 0) {
+				// Initialization - Populate the Lists
+				Init();
 
-        /// <summary>
-        /// Setup our internal list of pistons and associated data
-        /// </summary>
-        public void Init()
-        {
-            _pistonDataList.Clear();
+				if (pistonDataList.Count > 0) {
+					Runtime.UpdateFrequency = UpdateFrequency.Update10;
+				}
+			}
 
-            List<IMyPistonBase> _pistonList = new List<IMyPistonBase>();
-            PistonData data;
+			outputText.AppendStringBuilder(lastMessageText);
+			outputText.AppendLine();
+			outputText.Append(GetActivityIndicator());
 
-            GridTerminalSystem.GetBlocksOfType<IMyPistonBase>(_pistonList, Piston => MyIni.HasSection(Piston.CustomData, _sectionKey));
+			Print(outputText.ToString());
+		}
 
-            foreach (IMyPistonBase Piston in _pistonList) {
-                if (_iniSystem.TryParse(Piston.CustomData, _sectionKey)) {
-                    data = new PistonData();
+		/// <summary>
+		/// Setup our internal list of pistons and associated data
+		/// </summary>
+		private void Init()
+		{
+			pistonDataList.Clear();
 
-                    data.Piston = Piston;
-                    data.RetractSpeed = _iniSystem.Get(_sectionKey, "RetractSpeed").ToSingle(defaultRetractSpeed);
-                    data.ExtendSpeed = _iniSystem.Get(_sectionKey, "ExtendSpeed").ToSingle(defaultExtendSpeed);
-                    data.AutoRetract = _iniSystem.Get(_sectionKey, "AutoRetract").ToBoolean();
-                    data.AutoExtend = _iniSystem.Get(_sectionKey, "AutoExtend").ToBoolean();
-                    _pistonDataList.Add(data);
-                }
-            }
+			// temporary list
+			List<IMyPistonBase> pistonList = new List<IMyPistonBase>();
 
-            _pistonList.Clear();
+			GridTerminalSystem.GetBlocksOfType<IMyPistonBase>(pistonList, piston => MyIni.HasSection(piston.CustomData, SectionKey));
 
-            SetMessage("Piston cache updated...");
-        }
+			foreach (IMyPistonBase piston in pistonList) {
+				if (!ini.TryParse(piston.CustomData, SectionKey)) {
+					continue;
+				}
 
-        public enum ErrorLevel : int
-        {
-            L_NONE,
-            L_INFO,
-            L_WARNING,
-            L_ERROR,
-            L_ALL
-        }
+				PistonData data = new PistonData {
+					Piston = piston,
+					RetractSpeed = ini.Get(SectionKey, "RetractSpeed").ToSingle(defaultRetractSpeed),
+					ExtendSpeed = ini.Get(SectionKey, "ExtendSpeed").ToSingle(defaultExtendSpeed),
+					AutoRetract = ini.Get(SectionKey, "AutoRetract").ToBoolean(defaultAutoRetract),
+					AutoExtend = ini.Get(SectionKey, "AutoExtend").ToBoolean(defaultAutoExtend)
+				};
 
-        private const ErrorLevel OutputLevel = ErrorLevel.L_ALL;
+				pistonDataList.Add(data);
+			}
 
-        /// <summary>
-        /// Print a message to the message pane
-        /// </summary>
-        /// <param name="Message">The string to print</param>
-        /// <param name="level">The notification level to use (for restricting output)</param>
-        public void Print(string Message, ErrorLevel level = ErrorLevel.L_INFO)
-        {
-            if (level > OutputLevel) {
-                return;
-            }
+			pistonList.Clear();
 
-            Echo(Message);
-        }
+			SetMessage("Piston cache updated...");
+		}
 
-        /// <summary>
-        /// The last message to be displayed, this allows persistance along with an activity indicator
-        /// </summary>
-        private StringBuilder _lastMessageText;
+		private void SetMessage(string message)
+		{
+			lastMessageText.Clear();
+			lastMessageText.AppendFormat("\n  - Message -\n{0}\n\n", message);
+		}
 
-        public void SetMessage(string Message)
-        {
-            _lastMessageText.Clear();
-            _lastMessageText.AppendLine();
-            _lastMessageText.AppendLine("  - Message -");
-            _lastMessageText.AppendLine(Message);
-            _lastMessageText.AppendLine();
-        }
+		private void SetMessage(string format, params object[] args)
+		{
+			lastMessageText.Clear();
+			lastMessageText.AppendFormat(format, args);
+		}
 
-        public void SetMessage(string format, params object[] args)
-        {
-            _lastMessageText.AppendFormat(format, args);
-        }
+		// ReSharper disable once UnusedMember.Local
+		private void ClearMessage()
+		{
+			lastMessageText.Clear();
+		}
 
-        public void ClearMessage()
-        {
-            _lastMessageText.Clear();
-        }
+		/// <summary>
+		/// This is an internal counter for the little . .. ... .... indicator
+		/// </summary>
+		// ReSharper disable once InconsistentNaming
+		private int __activityIndicator;
 
-        /// <summary>
-        /// This is an internal counter for the little . .. ... .... indicator
-        /// </summary>
-        private int _activityIndicator;
+		/// <summary>
+		/// This is the internal string array for the indicator
+		/// </summary>
+		// ReSharper disable once InconsistentNaming
+		private readonly string[] __indicators = { "    ", ".   ", " .  ", "  . ", "   .", };
 
-        /// <summary>
-        /// Returns an ever changing string to let the user know the script is "working"
-        /// </summary>
-        /// <returns>An ever changing string</returns>
-        private string GetActivityIndicator()
-        {
-            string[] _indicators = {
-                "    ",
-                ".   ",
-                " .  ",
-                "  . ",
-                "   .",
-            };
+		/// <summary>
+		/// Returns an ever changing string to let the user know the script is "working"
+		/// </summary>
+		/// <returns>An ever changing string</returns>
+		private string GetActivityIndicator()
+		{
+			if (__activityIndicator >= __indicators.Length) {
+				__activityIndicator = 0;
+			}
 
-            if (_activityIndicator >= _indicators.Length) {
-                _activityIndicator = 0;
-            }
+			return __indicators[__activityIndicator++];
+		}
 
-            return _indicators[_activityIndicator++];
-        }
-    }
+		/// <summary>
+		/// Print a message to the message pane
+		/// </summary>
+		/// <param name="message">The string to print</param>
+		private void Print(string message)
+		{
+			Echo(message);
+		}
+
+		[StringFormatMessage("message")]
+		private void Print(string message, IMyTextSurface surface)
+		{
+			if (surface != null) {
+				surface.WriteText(message);
+			}
+
+			Echo(message);
+		}
+	}
 }

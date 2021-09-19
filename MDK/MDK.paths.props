@@ -5,10 +5,10 @@
     You can safely exclude this file from code repositories and use different 
     user settings per machine.
     -->
-    <MDKVersion>1.4.9</MDKVersion>
+    <MDKVersion>1.4.12</MDKVersion>
     <MDKUseGameBinPath>no</MDKUseGameBinPath>
     <MDKGameBinPath>c:\steam\SteamApps\common\SpaceEngineers\Bin64</MDKGameBinPath>
-    <MDKInstallPath>c:\users\gate\appdata\local\microsoft\visualstudio\16.0_834c719f\extensions\s20pmbz5.rpo</MDKInstallPath>
+    <MDKInstallPath>c:\users\gate\appdata\local\microsoft\visualstudio\16.0_834c719f\extensions\knj4r3ro.drd</MDKInstallPath>
     <MDKOutputPath>C:\Users\Gate\AppData\Roaming\SpaceEngineers\IngameScripts\local</MDKOutputPath>
   </PropertyGroup>
   <ItemGroup>
