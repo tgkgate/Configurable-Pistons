@@ -7,7 +7,7 @@
     Version:   1.2
 
     Change-Log:
-                v1.2:		Added Auto Rectract and Extend support
+                v1.2:		Added Auto Retract and Extend support
                 v1.1:		Bug-fix INI related
                 v1.0:		Initial Release
 
@@ -24,7 +24,7 @@
         [Piston Settings]
         RetractSpeed=1
         ExtendSpeed=1
-        AutoRectract=False
+        AutoRetract=False
         AutoExtend=False
 
     Note:

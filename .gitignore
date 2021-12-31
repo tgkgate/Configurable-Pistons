@@ -389,8 +389,9 @@ FodyWeavers.xsd
 
 
 
-# Windows X - hidden folder view configurtion files
+# Windows - hidden folder view configurtion files
 desktop.ini
+thumbs.db
 
 
 # Archive files

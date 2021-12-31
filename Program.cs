@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VRage.Game.ModAPI.Ingame.Utilities;
-using JetBrains.Annotations;
 
 namespace IngameScript
 {
@@ -182,7 +181,7 @@ namespace IngameScript
 
 					switch (data.Piston.Status) {
 						case PistonStatus.Extended:
-							data.Piston.Velocity = data.AutoRetract ? -data.RetractSpeed : -data.RetractSpeed;
+							data.Piston.Velocity = data.AutoRetract ? -data.RetractSpeed : data.RetractSpeed;
 							break;
 
 						case PistonStatus.Extending:
@@ -305,7 +304,6 @@ namespace IngameScript
 			Echo(message);
 		}
 
-		[StringFormatMessage("message")]
 		private void Print(string message, IMyTextSurface surface)
 		{
 			if (surface != null) {
