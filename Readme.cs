@@ -26,7 +26,7 @@
         [Piston Settings]
         RetractSpeed=1
         ExtendSpeed=1
-        AutoRectract=False
+        AutoRetract=False
         AutoExtend=False
 
     @Note:
