@@ -181,7 +181,7 @@ namespace IngameScript
 
 					switch (data.Piston.Status) {
 						case PistonStatus.Extended:
-							data.Piston.Velocity = data.AutoRetract ? -data.RetractSpeed : data.RetractSpeed;
+							data.Piston.Velocity = data.AutoRetract ? -data.RetractSpeed : data.ExtendSpeed;
 							break;
 
 						case PistonStatus.Extending:
@@ -189,7 +189,7 @@ namespace IngameScript
 							break;
 
 						case PistonStatus.Retracted:
-							data.Piston.Velocity = data.AutoExtend ? data.ExtendSpeed : -data.ExtendSpeed;
+							data.Piston.Velocity = data.AutoExtend ? data.ExtendSpeed : -data.RetractSpeed;
 							break;
 
 						case PistonStatus.Retracting:
